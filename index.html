@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mina & Ege | Plan</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+    <style>
+        html, body {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            overflow: hidden !important;
+            position: fixed;
+            background: #0b0f1a;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #f8fafc;
+        }
+
+        .container {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 30px;
+            border-radius: 40px;
+            box-shadow: 0 0 40px rgba(0,0,0,0.5);
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.05);
+            width: 440px; 
+            z-index: 10;
+        }
+
+        .wheel-box {
+            position: relative;
+            width: 400px; height: 400px;
+            margin: 0 auto;
+        }
+
+        canvas#wheel {
+            width: 100%; height: 100%;
+            border-radius: 50%;
+            border: 5px solid #334155;
+            /* Titremeyi önlemek için */
+            image-rendering: -webkit-optimize-contrast;
+            transform: translateZ(0);
+        }
+
+        #spin-btn {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 70px; height: 70px;
+            border-radius: 50%;
+            background: #fff;
+            border: none;
+            color: #0f172a;
+            font-weight: 900;
+            cursor: pointer;
+            z-index: 10;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.4);
+            font-size: 1.1rem;
+        }
+
+        .arrow {
+            position: absolute;
+            top: -15px; left: 50%;
+            transform: translateX(-50%);
+            width: 0; height: 0;
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-top: 30px solid #fff;
+            z-index: 20;
+        }
+
+        #result { margin-top: 25px; height: 50px; display: flex; align-items: center; justify-content: center; }
+        .win-tag {
+            color: #fff; padding: 10px 20px;
+            background: rgba(51, 65, 85, 0.6);
+            border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);
+            font-weight: bold; min-width: 180px; font-size: 1.2rem;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Mina & Ege • Plan</h1>
+        <div class="wheel-box">
+            <div class="arrow"></div>
+            <canvas id="wheel"></canvas>
+            <button id="spin-btn">GO</button>
+        </div>
+        <div id="result"><span class="win-tag"></span></div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById("wheel");
+        const ctx = canvas.getContext("2d");
+        const spinBtn = document.getElementById("spin-btn");
+        const resultDiv = document.getElementById("result");
+
+        const options = ["Millet Bahçesi", "Evde Yemek", "AVM Gezmesi", "Eskihisar Sahil", "Mina Seçsin", "Film Günü", "İstanbul Turu", "Ayıp Şeyler😏"];
+        const colors = ["#334155", "#1e293b", "#334155", "#1e293b", "#334155", "#1e293b", "#334155", "#b91c1c"];
+        
+        let startAngle = 0;
+        const arc = Math.PI / (options.length / 2);
+        const size = 1000;
+        canvas.width = size;
+        canvas.height = size;
+
+        function drawWheel() {
+            ctx.clearRect(0, 0, size, size);
+            for (let i = 0; i < options.length; i++) {
+                const angle = startAngle + i * arc;
+                ctx.fillStyle = colors[i];
+                
+                ctx.beginPath();
+                ctx.moveTo(500, 500);
+                ctx.arc(500, 500, 495, angle, angle + arc, false);
+                ctx.lineTo(500, 500);
+                ctx.fill();
+                
+                ctx.save();
+                ctx.fillStyle = "#fff";
+                ctx.translate(500 + Math.cos(angle + arc / 2) * 280, 500 + Math.sin(angle + arc / 2) * 280);
+                ctx.rotate(angle + arc / 2 + Math.PI / 2);
+                
+                // Fontu sığacak şekilde 32px'e sabitledim (900 kalınlıkta)
+                ctx.font = '900 32px Montserrat'; 
+                const text = options[i];
+                ctx.fillText(text, -ctx.measureText(text).width / 2, 0);
+                ctx.restore();
+            }
+        }
+
+        function rotateWheel() {
+            spinTime += 30;
+            if (spinTime >= spinTimeTotal) {
+                stopRotateWheel();
+                return;
+            }
+            const spinAngle = spinAngleStart - easeOut(spinTime, 0, spinAngleStart, spinTimeTotal);
+            startAngle += (spinAngle * Math.PI / 180);
+            drawWheel();
+            requestAnimationFrame(() => {}); // Ekran tazeleme senkronu
+            spinTimeout = setTimeout(rotateWheel, 30);
+        }
+
+        function stopRotateWheel() {
+            clearTimeout(spinTimeout);
+            const degrees = startAngle * 180 / Math.PI + 90;
+            const arcd = arc * 180 / Math.PI;
+            const index = Math.floor((360 - degrees % 360) / arcd);
+            resultDiv.innerHTML = `<span class="win-tag">${options[index]}</span>`;
+            
+            confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#fff', '#334155', '#b91c1c'] });
+            spinBtn.disabled = false;
+        }
+
+        function easeOut(t, b, c, d) {
+            const ts = (t /= d) * t;
+            const tc = ts * t;
+            return b + c * (tc + -3 * ts + 3 * t);
+        }
+
+        spinBtn.addEventListener("click", () => {
+            resultDiv.innerHTML = `<span class="win-tag">...</span>`;
+            spinBtn.disabled = true;
+            spinAngleStart = Math.random() * 10 + 20;
+            spinTime = 0;
+            spinTimeTotal = Math.random() * 3000 + 4000;
+            rotateWheel();
+        });
+
+        drawWheel();
+    </script>
+</body>
+</html>
